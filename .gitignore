@@ -103,3 +103,4 @@ ENV/
 
 # Ignoring datasets from commit
 Models/Logistic Model/datasets/
+Models/Double Layer Model/datasets/
