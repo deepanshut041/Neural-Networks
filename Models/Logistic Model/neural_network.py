@@ -29,9 +29,9 @@ class LogisticNeuralModel:
         s -- sigmoid(z)
         """
 
-        A = 1 / (1 + np.exp(-z))
+        s = 1 / (1 + np.exp(-z))
 
-        return A
+        return s
 
     def initialize_with_zeros(self, dim):
         """
@@ -41,7 +41,7 @@ class LogisticNeuralModel:
         dim -- size of the w vector we want (or number of parameters in this case)
         
         Returns:
-        w -- initialized vector of shape (dim, 1)
+        w -- initialized vector of shape (dim, 1)(A row vector)
         b -- initialized scalar (corresponds to the bias)
         """
         w = np.zeros(shape=(dim, 1))
@@ -50,7 +50,7 @@ class LogisticNeuralModel:
         return w, b
 
 
-    def propagate(w, b, X, Y):
+    def propagate(self, w, b, X, Y):
         """
         Implement the cost function and its gradient for the propagation explained above
 
@@ -64,13 +64,27 @@ class LogisticNeuralModel:
         cost -- negative log-likelihood cost for logistic regression
         dw -- gradient of the loss with respect to w, thus same shape as w
         db -- gradient of the loss with respect to b, thus same shape as b
-        
-        Tips:
-        - Write your code step by step for the propagation
         """
-        pass
+        m = X.shape[1]
+        # Forward Propagation steps 
+        Z = np.dot(w.T, X) + b
+        A = self.sigmoid(Z)
+        cost_logeq =  Y * np.log(A) + (1 - Y) * np.log(1 -A)
+        cost = (1 / m) * np.sum(cost_logeq)
 
-    def optimize(w, b, X, Y, num_iterations, learning_rate, print_cost = False):
+        # Backward Propgations steps
+        dz = A - Y
+        dw = (1 /m ) * np.sum(np.dot(dz, X.T))
+        db = (1 /m ) * np.sum(dz)
+
+        parameters = {
+            "dw" : dw,
+            "db" : db,
+            "cost" : cost
+        }
+        return parameters
+
+    def optimize(self, w, b, X, Y, num_iterations, learning_rate, print_cost = False):
         """
         This function optimizes w and b by running a gradient descent algorithm
         
@@ -88,9 +102,35 @@ class LogisticNeuralModel:
         grads -- dictionary containing the gradients of the weights and bias with respect to the cost function
         costs -- list of all the costs computed during the optimization, this will be used to plot the learning curve.
         """
-        pass
+        costs = []
+        db = None
+        dw = None
+        for i in range(num_iterations):
+            parameters = self.propagate(w, b, X, Y)
+            dw = parameters['dw']
+            db = parameters['db']
+            cost = parameters['cost']
 
-    def predict(w, b, X):
+            # Appling gradient descent algorithm 
+            w = w - learning_rate * dw
+            b = b - learning_rate * db
+
+            if i % 100 == 0:
+                costs.append(cost)
+                print("Cost after ", i, " iterations is - ", cost)
+        
+        params = {
+            "w" : w,
+            "b" : b
+        }
+        grads = {
+            "dw": dw,
+            "db": db
+            }
+
+        return params, grads, costs
+
+    def predict(self, w, b, X):
         '''
         Predict whether the label is 0 or 1 using learned logistic regression parameters (w, b)
         
@@ -102,9 +142,19 @@ class LogisticNeuralModel:
         Returns:
         Y_prediction -- a numpy array (vector) containing all predictions (0/1) for the examples in X
         '''
-        pass
 
-    def model(self):
+        m = X.shape[1]
+        Y_prediction = np.zeros((1, m))
+        w = w.reshape(X.shape[0], 1)
+
+        A = self.sigmoid(np.dot(w.T, X) + b)
+
+        for i in range(A.shape[1]):
+            Y_prediction[0, i] = 1 if A[0, i] > 0.5 else 0
+
+        return Y_prediction
+
+    def model(self, X_train, Y_train, X_test, Y_test, num_iterations, learning_rate):
         """
         Builds the logistic regression model by calling the function you've implemented previously
         
@@ -120,10 +170,28 @@ class LogisticNeuralModel:
         Returns:
         d -- dictionary containing information about the model.
         """
-        w, b = self.initialize_with_zeros(5)
-        print(w,b)
+        w, b = self.initialize_with_zeros(X_train.shape[0])
+
+        parameters, grads, costs = self.optimize(w, b, X_train, Y_train, num_iterations, learning_rate)
+
+        Y_prediction_test = self.predict(parameters['w'], parameters['b'], X_test)
+        Y_prediction_train = self.predict(parameters['w'], parameters['b'], X_train)
+        
+        print("train accuracy: {} %".format(100 - np.mean(np.abs(Y_prediction_train - Y_train)) * 100))
+        print("test accuracy: {} %".format(100 - np.mean(np.abs(Y_prediction_test - Y_test)) * 100))
+
+        data = {
+            "costs": costs,
+            "Y_prediction_test": Y_prediction_test, 
+            "Y_prediction_train" : Y_prediction_train, 
+            "w" : w, 
+            "b" : b,
+            "learning_rate" : learning_rate,
+            "num_iterations": num_iterations
+            }
+        
+        return data
 
 neuron = LogisticNeuralModel()
 
-neuron.model()
 
