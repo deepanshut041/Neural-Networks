@@ -67,16 +67,14 @@ class LogisticNeuralModel:
         """
         m = X.shape[1]
         # Forward Propagation steps 
-        Z = np.dot(w.T, X) + b
-        A = self.sigmoid(Z)
-        cost_logeq =  Y * np.log(A) + (1 - Y) * np.log(1 -A)
-        cost = (1 / m) * np.sum(cost_logeq)
+        A = self.sigmoid(np.dot(w.T, X) + b)  # compute activation
+        cost = (- 1 / m) * np.sum(Y * np.log(A) + (1 - Y) * (np.log(1 - A)))  # compute cost
 
         # Backward Propgations steps
         dz = A - Y
-        dw = (1 /m ) * np.sum(np.dot(dz, X.T))
+        dw = (1 / m) * np.dot(X, (dz).T)
         db = (1 /m ) * np.sum(dz)
-
+        cost = np.squeeze(cost)
         parameters = {
             "dw" : dw,
             "db" : db,
@@ -103,8 +101,6 @@ class LogisticNeuralModel:
         costs -- list of all the costs computed during the optimization, this will be used to plot the learning curve.
         """
         costs = []
-        db = None
-        dw = None
         for i in range(num_iterations):
             parameters = self.propagate(w, b, X, Y)
             dw = parameters['dw']
@@ -192,6 +188,36 @@ class LogisticNeuralModel:
         
         return data
 
+
+# Reading data from data set
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+train_filename = os.path.join(BASE_DIR, 'datasets\\train_catvnoncat.h5')
+test_filename = os.path.join(BASE_DIR, 'datasets\\test_catvnoncat.h5')
+
+train_dataset = h5py.File(train_filename, 'r')
+test_dataset = h5py.File(test_filename, 'r')
+
+X_train_org = np.array(train_dataset["train_set_x"][:])
+Y_train = np.array(train_dataset['train_set_y'][:])
+
+X_test_org = np.array(test_dataset["test_set_x"][:])
+Y_test = np.array(test_dataset['test_set_y'][:])
+
+print("Training dataset shape - ", X_train_org.shape)
+print("Test dataset shape - ", X_test_org.shape)
+
+X_train_u = X_train_org.reshape(X_train_org.shape[0], -1).T
+X_test_u = X_test_org.reshape(X_test_org.shape[0], -1).T
+
+X_train = X_train_u / 255.
+X_test = X_test_u / 255.
+
+print("Flated Training dataset shape - ", X_train.shape)
+print("Flated Testing dataset shape - ", X_test.shape)
 neuron = LogisticNeuralModel()
+data = neuron.model(X_train, Y_train, X_test, Y_test, 20000, 0.005)
+
+
 
 
